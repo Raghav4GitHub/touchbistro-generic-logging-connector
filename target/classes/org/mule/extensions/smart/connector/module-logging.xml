@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="LoggingConnector" category="SELECT"
+	prefix="module-logging"
+	doc:description="This module relies in runtime provided components"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:mule="http://www.mulesoft.org/schema/mule/core"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns="http://www.mulesoft.org/schema/mule/module"
+	xsi:schemaLocation="
+ 		   http://www.mulesoft.org/schema/mule/module http://www.mulesoft.org/schema/mule/module/current/mule-module.xsd
+           http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+           http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+           http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+           http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+           http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+           http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+		   http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+           http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<mule:sub-flow name="main-flow"
+		doc:id="6dca8b92-96d6-4ad7-b308-b9752100ae27">
+		<ee:transform doc:name="Build Payload To log"
+			doc:id="5ae667ff-b688-405a-a3b0-507892211857">
+			<ee:variables>
+				<ee:set-variable variableName="loggingPayload"><![CDATA[%dw 2.0
+output application/json
+import * from dw::util::Values
+var maskingValues = splitBy(p('maskValues'),",")
+---
+{
+	timestamp: now(),
+    correlationId: if(isBlank(vars.correlationId) == false) vars.correlationId else correlationId,
+	logLevel: vars.logLevel default "",
+	logMessage: (maskingValues reduce (item, accumulator = vars.message) -> accumulator mask(item) with "****") default "",
+	messageType: vars.messageType default "",
+	logType: vars.logType default "",
+	process: vars.process default "",
+	source: vars.source default "",
+	(exception: vars.exception) if (isEmpty(vars.exception) == false)
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Where to Log"
+			doc:id="18a94297-001f-47d8-b896-0e5615fbc33b">
+			<ee:variables>
+				<ee:set-variable variableName="target"><![CDATA[%dw 2.0
+output application/json
+---
+if (vars.logLevel == "INFO")
+p('loggingFramework.logTo.info')splitBy(/[,]/) default ["DEFAULT"]
+else if (vars.logLevel == "DEBUG")
+p('loggingFramework.logTo.debug')splitBy(/[,]/) default ["DEFAULT"]
+else if (vars.logLevel == "WARN")
+p('loggingFramework.logTo.warn')splitBy(/[,]/) default ["DEFAULT"]
+else if (vars.logLevel == "ERROR")
+p('loggingFramework.logTo.error')splitBy(/[,]/) default ["DEFAULT"]
+else if (vars.logLevel == "FATAL")
+p('loggingFramework.logTo.fatal')splitBy(/[,]/) default ["DEFAULT"]
+else
+["DEFAULT"]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<mule:foreach doc:name="For Each Target"
+			doc:id="19ba96c3-714b-4f4f-a9e7-14a0b399e9de"
+			collection="#[vars.target]">
+			<mule:choice doc:name="Where to log"
+				doc:id="4674b004-02a6-4c39-ad36-8b47ea295881">
+				<mule:when expression='#[upper(payload) == "DATADOG"]'>
+					<mule:flow-ref doc:name="Trigger Datadog Flow"
+						doc:id="81c59e8a-cf48-4522-8dbe-55857345060a" name="datadog-flow" />
+				</mule:when>
+				<mule:otherwise>
+					<mule:flow-ref name="default-flow"
+						doc:name="Trigger Default Logger Flow"
+						doc:id="9806d698-cc28-4c69-aa3e-86def7c7392a" />
+				</mule:otherwise>
+			</mule:choice>
+		</mule:foreach>
+	</mule:sub-flow>
+	<mule:sub-flow name="datadog-flow"
+		doc:id="6746fbe8-5c3c-4635-8143-a2afba1f5f1d">
+		<!-- <logger level="DEBUG" doc:name="Log Start" doc:id="d6d9c9a1-7813-4611-9593-02446713292e" 
+			message='"In generic logger - Splunk"'/> -->
+		<mule:try doc:name="Try"
+			doc:id="cacf55a5-3ea5-421f-b4c5-2058d06b4758">
+			<mule:until-successful maxRetries="3"
+				doc:name="Until Successful"
+				doc:id="1add4a82-d9c3-48a1-87e7-dd136f1f96e2"
+				millisBetweenRetries="20000">
+				<http:request method="POST" doc:name="Send to Datadog"
+					doc:id="d2842110-20c4-4dea-a5ac-d144f3efa46d"
+					config-ref="Datadog_HTTP_Config"
+					path="#[p('datadogConfig.basepath')]">
+					<http:body><![CDATA[#[vars.loggingPayload]]]></http:body>
+					<http:headers><![CDATA[#[output application/java
+---
+{
+	"DD-API-KEY" : p('secure::datadogconfig.apiKey')
+}]]]></http:headers>
+					<http:query-params><![CDATA[#[output application/java
+---
+{
+	"host" : server.host,
+	"source" : p('datadogConfig.source'),
+	"service" : p('datadogConfig.service'),
+	"ddtags" : p('datadogConfig.ddtags')
+	
+	
+}]]]></http:query-params>
+				</http:request>
+			</mule:until-successful>
+			<mule:error-handler>
+				<mule:on-error-continue
+					enableNotifications="true" logException="true"
+					doc:name="On Error Continue"
+					doc:id="ac1f8453-9196-4b52-942b-9e05b9fffad6">
+					<mule:logger level="ERROR" doc:name="Log Error"
+						doc:id="f6aef8eb-1bf7-4ad1-ad60-4d4bcb6092d1"
+						message="Error while calling Splunk" />
+				</mule:on-error-continue>
+			</mule:error-handler>
+		</mule:try>
+		<!-- <logger level="DEBUG" doc:name="Log End" doc:id="d3161b4c-3fd7-4bea-b1a6-aacf0d347314" 
+			message='"Exiting from generic logger - Splunk, Splunk Response : #[vars.splunkResponse]"'/> -->
+	</mule:sub-flow>
+	<mule:sub-flow name="default-flow"
+		doc:id="18774f79-0771-4e15-8733-9440f9a00bfa">
+		<mule:choice doc:name="Log Level"
+			doc:id="36800581-0b12-46ba-b562-200458617864">
+			<mule:when
+				expression='#[upper(vars.loggingPayload.logLevel) == "DEBUG"]'>
+				<mule:logger level="DEBUG" doc:name="Log DEBUG"
+					doc:id="e2a25903-83a5-4949-bf93-878ac1a6015e"
+					message="#[vars.loggingPayload]" />
+			</mule:when>
+			<mule:when
+				expression='#[upper(vars.loggingPayload.logLevel) == "ERROR"]'>
+				<mule:logger level="ERROR" doc:name="Log ERROR"
+					doc:id="3e40f552-07b8-4804-a350-912d824fb258"
+					message="#[vars.loggingPayload]" />
+			</mule:when>
+			<mule:when
+				expression='#[upper(vars.loggingPayload.logLevel) == "TRACE"]'>
+				<mule:logger level="TRACE" doc:name="Log TRACE"
+					doc:id="9eb9c2eb-8c74-409f-a9b1-f6d4f632fda3"
+					message="#[vars.loggingPayload]" />
+			</mule:when>
+			<mule:when
+				expression='#[upper(vars.loggingPayload.logLevel) == "WARN"]'>
+				<mule:logger level="WARN" doc:name="Log WARN"
+					doc:id="870938b0-f98d-45ca-a784-b4664ff11072"
+					message="#[vars.loggingPayload]" />
+			</mule:when>
+			<mule:when
+				expression='#[upper(vars.loggingPayload.logLevel) == "FATAL"]'>
+				<mule:logger level="ERROR" doc:name="Log FATAL"
+					doc:id="3376cc92-5c30-4c89-bca4-d52937e6cfa7"
+					message="#[vars.loggingPayload]" />
+			</mule:when>
+			<mule:otherwise>
+				<mule:logger level="INFO" doc:name="Log INFO"
+					doc:id="aac76253-337e-4f1c-ad11-07d6b391388f"
+					message="#[vars.loggingPayload]" />
+			</mule:otherwise>
+		</mule:choice>
+	</mule:sub-flow>
+	<operation name="LogOther" doc:description="Log the payload">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='INFO' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" defaultValue='#[payload]' />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="31a4906d-28ef-42a7-96cd-658c902d3832">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="38f7e53c-4a0b-42d0-a9b3-2a70c216e7df" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogInbound"
+		doc:description="Log the Inbound">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='DEBUG' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" defaultValue='#[payload]' />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Inbound' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="94449319-7f54-47c1-a0bd-7f2e33068e92">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="6b9aef57-5735-4896-9e0f-c1980f8af6ef" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogOutbound"
+		doc:description="Log the Outbound">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='DEBUG' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" defaultValue='#[payload]' />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Outbound' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="85fe61cc-bbc2-4d61-8db5-3e82950318c5">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="8bdce25e-633c-47b3-9f73-8aee7289a939" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogEntry" doc:description="Log the Entry">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='INFO' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" defaultValue='#[payload]' />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Entry' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="bdc46ef1-0546-43b2-b9e1-3d99c5c17445">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="670ade93-7b71-4caf-9d59-a66c0fb7eeed" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogExit" doc:description="Log the Exit">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='INFO' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" defaultValue='#[payload]' />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Exit' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="6b6dfdf4-bba8-4314-a3f1-d520c5a184bc">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="6009f315-18d2-4262-87db-88442d590332" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogError" doc:description="Log the Error">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='ERROR' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Error' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+			<parameter name="exception" displayName="Exception"
+				use="OPTIONAL" type="any"
+				defaultValue='#[error.detailedDescription]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="d151d267-b221-43ac-b8c2-4be2583a8e24">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="d26ed3f3-3140-4312-85b5-87b4a23f7c84" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogSecurity"
+		doc:description="Log the Security">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='WARN' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Security' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="d87c384d-bdba-44b6-8d00-27ba6098e0d2">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="8e914b43-6026-4969-a437-7015ab37f60b" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogPoll" doc:description="Log the Poll">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='INFO' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Poll' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='Scheduler' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="1eaf02f4-77c5-423c-971d-ca2d374a440f">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="af70b288-cad6-4422-b7a1-899a90114938" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+	<operation name="LogBatch" doc:description="Log the Batch">
+		<parameters>
+			<parameter name="logLevel" displayName="Log Level"
+				type="log-level-type" defaultValue='INFO' />
+			<parameter name="message" displayName="Message"
+				use="OPTIONAL" type="any" defaultValue='#[payload]' />
+			<parameter name="messageType" displayName="Message Type"
+				use="OPTIONAL" type="any" />
+			<parameter name="process" displayName="Service Name"
+				use="OPTIONAL" type="any" defaultValue='#[app.name]' />
+			<parameter name="logType" displayName="Log Type"
+				use="OPTIONAL" type="any" defaultValue='Log Batch' />
+			<parameter name="source" displayName="Source"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.source]' />
+			<parameter name="correlationId" displayName="CorrelationId"
+				use="OPTIONAL" type="any" defaultValue='#[vars.info.correlationId]' />
+		</parameters>
+		<body>
+			<mule:async doc:name="Async"
+				doc:id="d232f723-00c8-40f8-ba1a-1863d8a657b4">
+				<mule:flow-ref doc:name="Trigger Main Flow"
+					doc:id="9aa63fd6-da53-45a3-a62d-55cbfe047822" name="main-flow" />
+			</mule:async>
+		</body>
+		<errors>
+			<error type="ANY" />
+		</errors>
+	</operation>
+</module>	

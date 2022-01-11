@@ -1,0 +1,380 @@
+:toc:               left
+:toc-title:         LoggingConnector Module
+:toclevels:         2
+:last-update-label!:
+:docinfo:
+:source-highlighter: coderay
+:icons: font
+
+
+= LoggingConnector Module Documentation Reference
+
++++
+This module relies in runtime provided components
++++
+
+
+== Configurations
+---
+[[config]]
+=== Config
+
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+|Name | String | The name for this configuration. Connectors reference the configuration with this name. | | *x*{nbsp}
+|======================
+
+
+==== Associated Operations
+* <<LogBatch>> {nbsp}
+* <<LogEntry>> {nbsp}
+* <<LogError>> {nbsp}
+* <<LogExit>> {nbsp}
+* <<LogInbound>> {nbsp}
+* <<LogOther>> {nbsp}
+* <<LogOutbound>> {nbsp}
+* <<LogPoll>> {nbsp}
+* <<LogSecurity>> {nbsp}
+
+
+
+== Operations
+
+[[LogBatch]]
+=== Log Batch
+`<module-logging:log-batch>`
+
++++
+Log the Batch
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++INFO+++ | {nbsp}
+| Message a| Any |  |  +++#[payload]+++ | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Batch+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogEntry]]
+=== Log Entry
+`<module-logging:log-entry>`
+
++++
+Log the Entry
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++INFO+++ | {nbsp}
+| Message a| Any |  |  +++#[payload]+++ | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Entry+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogError]]
+=== Log Error
+`<module-logging:log-error>`
+
++++
+Log the Error
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++ERROR+++ | {nbsp}
+| Message a| Any |  |  | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Error+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+| Exception a| Any |  |  +++#[error.detailedDescription]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogExit]]
+=== Log Exit
+`<module-logging:log-exit>`
+
++++
+Log the Exit
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++INFO+++ | {nbsp}
+| Message a| Any |  |  +++#[payload]+++ | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Exit+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogInbound]]
+=== Log Inbound
+`<module-logging:log-inbound>`
+
++++
+Log the Inbound
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++DEBUG+++ | {nbsp}
+| Message a| Any |  |  +++#[payload]+++ | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Inbound+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogOther]]
+=== Log Other
+`<module-logging:log-other>`
+
++++
+Log the payload
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++INFO+++ | {nbsp}
+| Message a| Any |  |  +++#[payload]+++ | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogOutbound]]
+=== Log Outbound
+`<module-logging:log-outbound>`
+
++++
+Log the Outbound
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++DEBUG+++ | {nbsp}
+| Message a| Any |  |  +++#[payload]+++ | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Outbound+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogPoll]]
+=== Log Poll
+`<module-logging:log-poll>`
+
++++
+Log the Poll
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++INFO+++ | {nbsp}
+| Message a| Any |  |  | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Poll+++ | {nbsp}
+| Source a| Any |  |  +++Scheduler+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+[[LogSecurity]]
+=== Log Security
+`<module-logging:log-security>`
+
++++
+Log the Security
++++
+
+==== Parameters
+[cols=".^20%,.^20%,.^35%,.^20%,^.^5%", options="header"]
+|======================
+| Name | Type | Description | Default Value | Required
+| Configuration | String | The name of the configuration to use. | | *x*{nbsp}
+| Log Level a| Enumeration, one of:
+
+** TRACE
+** ERROR
+** INFO
+** DEBUG
+** FATAL
+** WARN |  |  +++WARN+++ | {nbsp}
+| Message a| Any |  |  | {nbsp}
+| Message Type a| Any |  |  | {nbsp}
+| Service Name a| Any |  |  +++#[app.name]+++ | {nbsp}
+| Log Type a| Any |  |  +++Log Security+++ | {nbsp}
+| Source a| Any |  |  +++#[vars.info.source]+++ | {nbsp}
+| CorrelationId a| Any |  |  +++#[vars.info.correlationId]+++ | {nbsp}
+|======================
+
+
+==== For Configurations.
+* <<config>> {nbsp}
+
+==== Throws
+* MODULE-LOGGING:ANY {nbsp}
+
+
+
